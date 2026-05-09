@@ -8,7 +8,11 @@ import Dashboard from './pages/Dashboard';
 import Farms from './pages/Farms';
 import Scans from './pages/Scans';
 import Alerts from './pages/Alerts';
+import VerifyEmail from './pages/VerifyEmail';
+
 import './App.css';
+import ResendVerification from './pages/ResendVerification';
+
 function App() {
   return (
     <Router>
@@ -20,6 +24,8 @@ function App() {
           <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
           <Route path="/farms" element={<PrivateRoute><Farms /></PrivateRoute>} />
           <Route path="/scans" element={<PrivateRoute><Scans /></PrivateRoute>} />
+          <Route path="/resend-verification" element={<ResendVerification />} />
+          <Route path="/verify-email/:token" element={<VerifyEmail />} />
           <Route path="/alerts" element={<PrivateRoute><Alerts /></PrivateRoute>} />
         </Routes>
       </AuthProvider>

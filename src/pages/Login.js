@@ -12,6 +12,11 @@ const Login = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!username || !password) {
+      setError('Please enter username and password');
+      return;
+    }
+    
     setLoading(true);
     setError('');
     
@@ -20,66 +25,78 @@ const Login = () => {
     if (result.success) {
       navigate('/dashboard');
     } else {
-      setError(result.error);
+      if (result.error?.includes('verify') || result.error?.includes('activated')) {
+        setError(
+          <span>
+            {result.error}<br/>
+            <Link to="/resend-verification" style={{ color: '#2e7d32' }}>Click here to resend verification email</Link>
+          </span>
+        );
+      } else {
+        setError(result.error || 'Login failed. Please check your credentials.');
+      }
     }
     setLoading(false);
   };
 
   const styles = {
-    container: {
-      minHeight: '100vh',
-      display: 'flex',
-      justifyContent: 'center',
-      alignItems: 'center',
-      background: '#f5f5f5'
+    container: { 
+      minHeight: '100vh', 
+      display: 'flex', 
+      justifyContent: 'center', 
+      alignItems: 'center', 
+      background: '#f5f5f5' 
     },
-    card: {
-      background: 'white',
-      padding: '40px',
-      borderRadius: '10px',
-      boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
-      width: '400px'
+    card: { 
+      background: 'white', 
+      padding: '40px', 
+      borderRadius: '10px', 
+      boxShadow: '0 2px 10px rgba(0,0,0,0.1)', 
+      width: '400px' 
     },
-    title: {
-      textAlign: 'center',
-      color: '#2e7d32',
-      marginBottom: '10px'
+    title: { 
+      textAlign: 'center', 
+      color: '#2e7d32', 
+      marginBottom: '10px',
+      fontSize: '28px'
     },
-    subtitle: {
-      textAlign: 'center',
-      color: '#666',
-      marginBottom: '30px'
+    subtitle: { 
+      textAlign: 'center', 
+      color: '#666', 
+      marginBottom: '30px' 
     },
-    input: {
-      width: '100%',
-      padding: '12px',
-      marginBottom: '15px',
-      border: '1px solid #ddd',
-      borderRadius: '5px',
-      fontSize: '16px'
-    },
-    button: {
-      width: '100%',
-      padding: '12px',
-      background: '#2e7d32',
-      color: 'white',
-      border: 'none',
-      borderRadius: '5px',
+    input: { 
+      width: '100%', 
+      padding: '12px', 
+      marginBottom: '15px', 
+      border: '1px solid #ddd', 
+      borderRadius: '5px', 
       fontSize: '16px',
-      cursor: 'pointer'
+      boxSizing: 'border-box'
     },
-    error: {
-      background: '#ffebee',
-      color: '#c62828',
-      padding: '10px',
-      borderRadius: '5px',
-      marginBottom: '15px',
-      textAlign: 'center'
+    button: { 
+      width: '100%', 
+      padding: '12px', 
+      background: loading ? '#ccc' : '#2e7d32', 
+      color: 'white', 
+      border: 'none', 
+      borderRadius: '5px', 
+      fontSize: '16px', 
+      cursor: loading ? 'not-allowed' : 'pointer',
+      fontWeight: 'bold'
     },
-    link: {
-      textAlign: 'center',
-      marginTop: '20px',
-      color: '#666'
+    error: { 
+      background: '#ffebee', 
+      color: '#c62828', 
+      padding: '12px', 
+      borderRadius: '5px', 
+      marginBottom: '15px', 
+      textAlign: 'center' 
+    },
+    link: { 
+      textAlign: 'center', 
+      marginTop: '20px', 
+      color: '#666' 
     }
   };
 
@@ -87,7 +104,7 @@ const Login = () => {
     <div style={styles.container}>
       <div style={styles.card}>
         <h1 style={styles.title}>🌱 CacaoGuard</h1>
-        <p style={styles.subtitle}>Farm Disease Monitoring System</p>
+        <p style={styles.subtitle}>Login to your account</p>
         
         {error && <div style={styles.error}>{error}</div>}
         
