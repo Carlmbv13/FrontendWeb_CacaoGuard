@@ -1,0 +1,116 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  db:
+    image: postgres:15-alpine
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=cacaoguard
+      - POSTGRES_USER=cacaoguard
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cacaoguard"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis (for caching and session storage)
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+  # Django Backend
+  backend:
+    build: ./backend
+    command: >
+      sh -c "
+        python manage.py wait_for_db &&
+        python manage.py migrate &&
+        python manage.py seed_data &&
+        gunicorn --bind 0.0.0.0:8000 cacaoguard_backend.wsgi:application
+      "
+    volumes:
+      - ./backend:/app
+      - static_volume:/app/staticfiles
+      - media_volume:/app/media
+    ports:
+      - "8000:8000"
+    environment:
+      - DEBUG=0
+      - SECRET_KEY=${SECRET_KEY}
+      - DJANGO_ALLOWED_HOSTS=${DJANGO_ALLOWED_HOSTS}
+      - DATABASE_URL=postgresql://cacaoguard:${DB_PASSWORD}@db:5432/cacaoguard
+      - REDIS_URL=redis://redis:6379/0
+      # Email Settings
+      - EMAIL_BACKEND=${EMAIL_BACKEND}
+      - EMAIL_HOST=${EMAIL_HOST}
+      - EMAIL_PORT=${EMAIL_PORT}
+      - EMAIL_USE_TLS=${EMAIL_USE_TLS}
+      - EMAIL_HOST_USER=${EMAIL_HOST_USER}
+      - EMAIL_HOST_PASSWORD=${EMAIL_HOST_PASSWORD}
+      - DEFAULT_FROM_EMAIL=${DEFAULT_FROM_EMAIL}
+      - FRONTEND_URL=${FRONTEND_URL}
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+
+  # React Frontend
+  frontend:
+    build: ./frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    environment:
+      - REACT_APP_API_URL=http://localhost:8000/api
+
+  # Celery Worker (for async email tasks)
+  celery:
+    build: ./backend
+    command: celery -A cacaoguard_backend worker -l info
+    volumes:
+      - ./backend:/app
+    environment:
+      - DATABASE_URL=postgresql://cacaoguard:${DB_PASSWORD}@db:5432/cacaoguard
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      - db
+      - redis
+
+  # Celery Beat (for scheduled tasks)
+  celery-beat:
+    build: ./backend
+    command: celery -A cacaoguard_backend beat -l info
+    volumes:
+      - ./backend:/app
+    environment:
+      - DATABASE_URL=postgresql://cacaoguard:${DB_PASSWORD}@db:5432/cacaoguard
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      - db
+      - redis
+
+  # MailHog (for email testing in development)
+  mailhog:
+    image: mailhog/mailhog
+    ports:
+      - "1025:1025"  # SMTP port
+      - "8025:8025"  # Web interface
+    environment:
+      - MH_STORAGE=maildir
+      - MH_MAILDIR_PATH=/tmp/maildir
+
+volumes:
+  postgres_data:
+  redis_data:
+  static_volume:
+  media_volume:
